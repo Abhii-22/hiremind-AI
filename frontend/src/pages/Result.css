@@ -1,0 +1,249 @@
+/* Results Page Styles */
+.results-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.results-container {
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.results-header {
+  margin-bottom: 2rem;
+}
+
+.results-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.score-display {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 15px;
+  margin-bottom: 2rem;
+}
+
+.score-number {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.score-label {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.score-grade {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+/* Feedback Sections */
+.feedback-section {
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.feedback-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feedback-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feedback-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.strength-item {
+  background: #d4edda;
+  color: #155724;
+}
+
+.weakness-item {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.feedback-icon {
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* AI Feedback */
+.ai-feedback {
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.ai-feedback-text {
+  font-style: italic;
+  color: #495057;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+.ai-attribution {
+  margin-top: 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+/* Action Button */
+.practice-again-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.practice-again-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(40, 167, 69, 0.3);
+}
+
+/* Score Breakdown */
+.score-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.score-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.score-category {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .results-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .results-title {
+    font-size: 2rem;
+  }
+  
+  .score-number {
+    font-size: 2.5rem;
+  }
+  
+  .feedback-section {
+    margin-bottom: 1.5rem;
+  }
+  
+  .score-breakdown {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .results-container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .results-title {
+    font-size: 1.8rem;
+  }
+  
+  .score-number {
+    font-size: 2rem;
+  }
+  
+  .score-display {
+    padding: 1.5rem;
+  }
+  
+  .feedback-title {
+    font-size: 1.1rem;
+  }
+  
+  .score-breakdown {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .practice-again-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
