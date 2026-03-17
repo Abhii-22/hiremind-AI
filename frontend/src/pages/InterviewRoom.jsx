@@ -10,6 +10,12 @@ const InterviewRoom = () => {
   const [interviewSetup, setInterviewSetup] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiAnswer, setAiAnswer] = useState('');
+  const [showAiAnswer, setShowAiAnswer] = useState(false);
+  const [generatingAnswer, setGeneratingAnswer] = useState(false);
+  const [verifyingAnswer, setVerifyingAnswer] = useState(false);
+  const [showWrongMessage, setShowWrongMessage] = useState(false);
+  const [evaluationFeedback, setEvaluationFeedback] = useState('');
 
   const navigate = useNavigate();
 
@@ -101,17 +107,104 @@ const InterviewRoom = () => {
     }
   };
 
-  const handleSubmitAnswer = () => {
-    // Save answer and move to next question
+  const generateAiAnswer = async () => {
+    if (!questions[currentQuestion]) return;
+    
+    setGeneratingAnswer(true);
+    setShowAiAnswer(false);
+    
+    try {
+      const response = await fetch('http://localhost:5002/api/interviews/generate-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          question: questions[currentQuestion],
+          role: interviewSetup?.role || 'Frontend Developer',
+          experience: interviewSetup?.experience || 'Mid-level',
+          type: interviewSetup?.type || 'Technical'
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setAiAnswer(data.answer.answer);
+        setShowAiAnswer(true);
+      } else {
+        console.error('Failed to generate answer:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating AI answer:', error);
+    } finally {
+      setGeneratingAnswer(false);
+    }
+  };
+
+  const handleSubmitAnswer = async () => {
+    // Save answer and verify it before moving to next question
     console.log('Answer submitted:', textAnswer);
     
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setTextAnswer('');
-      setTimeRemaining(150); // Reset timer for next question
-    } else {
-      // Interview completed, navigate to results
-      navigate('/results');
+    if (!textAnswer.trim()) return;
+    
+    setVerifyingAnswer(true);
+    setShowWrongMessage(false);
+    
+    try {
+      const response = await fetch('http://localhost:5002/api/interviews/evaluate-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          question: questions[currentQuestion],
+          userAnswer: textAnswer,
+          role: interviewSetup?.role || 'Frontend Developer',
+          experience: interviewSetup?.experience || 'Mid-level',
+          type: interviewSetup?.type || 'Technical'
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const evaluation = data.evaluation;
+        console.log('Answer evaluation:', evaluation);
+        
+        if (evaluation.isCorrect && !evaluation.isRandomContent) {
+          // Correct answer - move to next question
+          console.log('✅ Answer is correct, moving to next question');
+          
+          if (currentQuestion < questions.length - 1) {
+            setCurrentQuestion(currentQuestion + 1);
+            setTextAnswer('');
+            setAiAnswer('');
+            setShowAiAnswer(false);
+            setShowWrongMessage(false);
+            setEvaluationFeedback('');
+            setTimeRemaining(150); // Reset timer for next question
+          } else {
+            // Interview completed, navigate to results
+            navigate('/results');
+          }
+        } else {
+          // Wrong answer - show wrong message
+          console.log('❌ Answer is wrong, showing error');
+          setShowWrongMessage(true);
+          setEvaluationFeedback(evaluation.feedback || 'Your answer is not correct. Please try again.');
+        }
+      } else {
+        console.error('Failed to evaluate answer:', data.error);
+        setShowWrongMessage(true);
+        setEvaluationFeedback('Failed to verify answer. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error evaluating answer:', error);
+      setShowWrongMessage(true);
+      setEvaluationFeedback('Error verifying answer. Please try again.');
+    } finally {
+      setVerifyingAnswer(false);
     }
   };
 
@@ -182,13 +275,59 @@ const InterviewRoom = () => {
                 rows={4}
               />
 
+              {/* Generate AI Answer Button */}
+              <button 
+                className="generate-ai-answer-btn"
+                onClick={generateAiAnswer}
+                disabled={generatingAnswer}
+              >
+                <span className="ai-icon">🤖</span>
+                {generatingAnswer ? 'Generating AI Answer...' : 'Generate AI Answer'}
+              </button>
+
+              {/* AI Answer Display */}
+              {showAiAnswer && (
+                <div className="ai-answer-section">
+                  <div className="ai-answer-label">
+                    <span className="ai-icon">🤖</span>
+                    AI Generated Answer
+                  </div>
+                  <div className="ai-answer-text">
+                    {aiAnswer}
+                  </div>
+                </div>
+              )}
+
+              {/* Wrong Answer Message */}
+              {showWrongMessage && (
+                <div className="wrong-answer-message">
+                  <div className="wrong-answer-header">
+                    <span className="wrong-icon">❌</span>
+                    Wrong Answer
+                  </div>
+                  <div className="wrong-answer-feedback">
+                    {evaluationFeedback}
+                  </div>
+                  <button 
+                    className="try-again-btn"
+                    onClick={() => {
+                      setShowWrongMessage(false);
+                      setEvaluationFeedback('');
+                      setTextAnswer('');
+                    }}
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button 
                 className="submit-btn"
                 onClick={handleSubmitAnswer}
-                disabled={!textAnswer.trim() && !isRecording}
+                disabled={!textAnswer.trim() && !isRecording || verifyingAnswer}
               >
-                Submit Answer
+                {verifyingAnswer ? 'Verifying Answer...' : 'Submit Answer'}
               </button>
             </div>
           </section>

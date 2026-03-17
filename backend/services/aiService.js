@@ -1,5 +1,199 @@
 const mongoose = require('mongoose');
 
+async function generateAnswer(question, role, experience, type) {
+  console.log('🤖 generateAnswer called with:', { question, role, experience, type });
+  
+  try {
+    // Use real Gemini AI for dynamic answer generation
+    console.log('✅ Using Gemini AI Answer Generator');
+    const result = await generateWithGeminiAnswer(question, role, experience, type);
+    console.log('🤖 Gemini AI returned answer');
+    return result;
+  } catch (error) {
+    console.log('❌ Gemini AI failed for answer, using fallback...', error.message);
+    const fallback = generateFallbackAnswer(question, role, experience, type);
+    console.log('🔄 Using fallback answer');
+    return fallback;
+  }
+}
+
+async function generateWithGeminiAnswer(question, role, experience, type) {
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    const prompt = `Generate a professional and comprehensive answer for the following interview question.
+
+Question: "${question}"
+Role: ${role}
+Experience Level: ${experience}
+Interview Type: ${type}
+
+Requirements:
+- Provide a detailed, professional answer
+- Include specific examples and best practices
+- Make it appropriate for a ${experience} ${role} position
+- Answer should be 2-4 paragraphs long
+- Include technical details relevant to the role
+- Demonstrate expertise and confidence
+- Format as plain text (no JSON, no markdown)
+
+Generate the answer now:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log('🔍 Gemini AI Answer Response:', text.substring(0, 100) + '...');
+
+    // Clean the response - remove any markdown formatting
+    let cleanAnswer = text.trim();
+    if (cleanAnswer.startsWith('```')) {
+      cleanAnswer = cleanAnswer.replace(/```\w*\s*/, '').replace(/```\s*$/, '');
+    }
+
+    return {
+      answer: cleanAnswer,
+      aiGenerated: true,
+      role: role,
+      experience: experience,
+      type: type
+    };
+
+  } catch (error) {
+    console.log('❌ Gemini AI answer failed completely, using fallback:', error.message);
+    return generateFallbackAnswer(question, role, experience, type);
+  }
+}
+
+function generateFallbackAnswer(question, role, experience, type) {
+  return {
+    answer: `As a ${experience.toLowerCase()} ${role}, I would approach this question by first understanding the core requirements and then applying best practices and industry standards. For this specific question about ${role}, I would leverage my experience with relevant technologies and methodologies to provide a comprehensive solution that meets the needs of the project while maintaining code quality and performance standards.`,
+    aiGenerated: false,
+    role: role,
+    experience: experience,
+    type: type
+  };
+}
+
+async function evaluateAnswer(question, userAnswer, role, experience, type) {
+  console.log('🔍 evaluateAnswer called with:', { question, userAnswer, role, experience, type });
+  
+  try {
+    // Use real Gemini AI for answer evaluation
+    console.log('✅ Using Gemini AI Answer Evaluator');
+    const result = await evaluateWithGemini(question, userAnswer, role, experience, type);
+    console.log('🤖 Gemini AI returned evaluation');
+    return result;
+  } catch (error) {
+    console.log('❌ Gemini AI failed for evaluation, using fallback...', error.message);
+    const fallback = evaluateFallbackAnswer(question, userAnswer, role, experience, type);
+    console.log('🔄 Using fallback evaluation');
+    return fallback;
+  }
+}
+
+async function evaluateWithGemini(question, userAnswer, role, experience, type) {
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    const prompt = `Evaluate the following interview answer for a ${experience} ${role} position.
+
+Question: "${question}"
+User's Answer: "${userAnswer}"
+Interview Type: ${type}
+
+Requirements:
+- Evaluate if the answer is relevant to the question
+- Check for technical accuracy and correctness
+- Assess the quality and completeness of the answer
+- Look for random content, gibberish, or irrelevant answers
+- Consider the experience level (${experience}) in your evaluation
+- Rate the answer from 1-10 (where 10 is excellent)
+- Provide specific feedback
+
+Return the evaluation as JSON with this exact format:
+{
+  "score": number between 1-10,
+  "isRelevant": boolean,
+  "isCorrect": boolean,
+  "quality": "Excellent|Good|Average|Poor|Very Poor",
+  "feedback": "detailed feedback about the answer",
+  "suggestions": "specific suggestions for improvement",
+  "isRandomContent": boolean
+}
+
+Evaluate the answer now:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log('🔍 Gemini AI Evaluation Response:', text.substring(0, 100) + '...');
+
+    // Clean the response - remove any markdown formatting
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.replace(/```json\s*/, '').replace(/```\s*$/, '');
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/```\s*/, '').replace(/```\s*$/, '');
+    }
+
+    // Parse the JSON response
+    let evaluation;
+    try {
+      evaluation = JSON.parse(cleanText);
+      console.log('✅ Successfully parsed evaluation');
+    } catch (parseError) {
+      console.log('❌ JSON parse failed, using fallback evaluation:', parseError.message);
+      return evaluateFallbackAnswer(question, userAnswer, role, experience, type);
+    }
+
+    // Ensure all required fields are present
+    return {
+      score: evaluation.score || 5,
+      isRelevant: evaluation.isRelevant !== undefined ? evaluation.isRelevant : true,
+      isCorrect: evaluation.isCorrect !== undefined ? evaluation.isCorrect : true,
+      quality: evaluation.quality || 'Average',
+      feedback: evaluation.feedback || 'Answer submitted successfully.',
+      suggestions: evaluation.suggestions || 'Consider providing more specific examples.',
+      isRandomContent: evaluation.isRandomContent !== undefined ? evaluation.isRandomContent : false
+    };
+
+  } catch (error) {
+    console.log('❌ Gemini AI evaluation failed completely, using fallback:', error.message);
+    return evaluateFallbackAnswer(question, userAnswer, role, experience, type);
+  }
+}
+
+function evaluateFallbackAnswer(question, userAnswer, role, experience, type) {
+  // Simple fallback evaluation logic
+  const answerLength = userAnswer.trim().length;
+  const hasRelevantKeywords = userAnswer.toLowerCase().includes(role.toLowerCase()) || 
+                             userAnswer.toLowerCase().includes('experience') ||
+                             userAnswer.toLowerCase().includes('skill');
+  
+  const isRandomContent = answerLength < 10 || 
+                         (!hasRelevantKeywords && answerLength < 50);
+  
+  const score = isRandomContent ? 2 : (hasRelevantKeywords ? 6 : 4);
+  
+  return {
+    score: score,
+    isRelevant: !isRandomContent,
+    isCorrect: !isRandomContent && hasRelevantKeywords,
+    quality: isRandomContent ? 'Very Poor' : (hasRelevantKeywords ? 'Average' : 'Poor'),
+    feedback: isRandomContent ? 'The answer appears to be random or insufficient content.' : 
+              'Answer submitted. Consider adding more specific details.',
+    suggestions: isRandomContent ? 'Please provide a relevant answer to the question.' : 
+                  'Try to include specific examples and technical details.',
+    isRandomContent: isRandomContent
+  };
+}
+
 async function generateQuestions(role, experience, type) {
   console.log('🔥 generateQuestions called with:', { role, experience, type });
   
@@ -27,21 +221,21 @@ async function generateWithGemini(role, experience, type) {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt = `Generate 10 unique interview questions for a ${experience} ${role} position for a ${type} interview.
 
 Requirements:
-- Generate 10 different questions
+- Generate exactly 10 different questions
 - Questions should be professional and relevant to the role
 - For Technical interview: focus on technical skills, problem-solving, and industry knowledge
 - For Behavioral interview: focus on behavioral scenarios, team collaboration, and soft skills
 - Make questions specific to ${experience} level
 - Each question should be complete and ready to ask
-- Format as a JSON array of strings
+- Return ONLY a JSON array of strings, no additional text
 
 Example format:
-["What is your experience with...?", "How would you handle...?", "Describe a time when you..."]
+["What is your experience with React hooks?", "How do you optimize React app performance?", "Describe a time you solved a complex frontend bug"]
 
 Generate questions now:`;
 
@@ -49,22 +243,42 @@ Generate questions now:`;
     const response = await result.response;
     const text = response.text();
 
-    console.log('Gemini AI Response:', text);
+    console.log('🔍 Raw Gemini Response:', text);
+    console.log('🔍 Response length:', text.length);
+
+    // Clean the response - remove any markdown formatting
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```json')) {
+      cleanText = cleanText.replace(/```json\s*/, '').replace(/```\s*$/, '');
+    } else if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/```\s*/, '').replace(/```\s*$/, '');
+    }
+
+    console.log('🔍 Cleaned response:', cleanText);
 
     // Parse the JSON response
     let questions = [];
     try {
-      // Extract JSON from the response
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        questions = JSON.parse(jsonMatch[0]);
-      }
+      questions = JSON.parse(cleanText);
+      console.log('✅ Successfully parsed', questions.length, 'questions');
     } catch (parseError) {
-      console.log('Failed to parse Gemini response, using fallback');
+      console.log('❌ JSON parse failed, trying regex extraction:', parseError.message);
+      
+      // Fallback: try to extract JSON array using regex
+      const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          questions = JSON.parse(jsonMatch[0]);
+          console.log('✅ Regex extraction successful, got', questions.length, 'questions');
+        } catch (regexError) {
+          console.log('❌ Regex extraction also failed:', regexError.message);
+        }
+      }
     }
 
-    // If Gemini fails or returns less than 10 questions, use dynamic fallback
+    // If still no valid questions, use dynamic fallback
     if (questions.length < 10) {
+      console.log('🔄 Using dynamic fallback questions');
       questions = generateDynamicQuestions(role, experience, type);
     }
 
@@ -82,7 +296,7 @@ Generate questions now:`;
     }));
 
   } catch (error) {
-    console.log('Gemini AI failed, using dynamic fallback questions...', error.message);
+    console.log('❌ Gemini AI failed completely, using fallback:', error.message);
     return generateDynamicQuestions(role, experience, type);
   }
 }
@@ -577,6 +791,8 @@ Provide recommendations in JSON format:
 
 module.exports = {
   generateQuestions,
+  generateAnswer,
+  evaluateAnswer,
   analyzeAnswer,
   generateFollowUp,
   analyzeCode,

@@ -3,6 +3,8 @@ const interviewController = require('../controllers/interviewController');
 const { protect } = require('../middleware/auth');
 const { 
   generateQuestions, 
+  generateAnswer,
+  evaluateAnswer,
   analyzeAnswer, 
   generateFollowUp, 
   analyzeCode,
@@ -69,6 +71,64 @@ router.post("/generate-questions", async (req, res) => {
     console.error('Error in generate-questions:', error);
     res.status(500).json({ 
       error: "Failed to generate questions",
+      details: error.message 
+    });
+  }
+});
+
+router.post("/generate-answer", async (req, res) => {
+  try {
+    const { question, role, experience, type } = req.body;
+    
+    console.log('🎯 /generate-answer endpoint called with:', { question, role, experience, type });
+    
+    if (!question || !role) {
+      return res.status(400).json({ 
+        error: "Missing required fields: question, role" 
+      });
+    }
+
+    const answer = await generateAnswer(question, role, experience, type);
+    
+    console.log('📤 Sending generated answer');
+    
+    res.json({ 
+      success: true,
+      answer 
+    });
+  } catch (error) {
+    console.error('Error in generate-answer:', error);
+    res.status(500).json({ 
+      error: "Failed to generate answer",
+      details: error.message 
+    });
+  }
+});
+
+router.post("/evaluate-answer", async (req, res) => {
+  try {
+    const { question, userAnswer, role, experience, type } = req.body;
+    
+    console.log('🎯 /evaluate-answer endpoint called with:', { question, userAnswer, role, experience, type });
+    
+    if (!question || !userAnswer || !role) {
+      return res.status(400).json({ 
+        error: "Missing required fields: question, userAnswer, role" 
+      });
+    }
+
+    const evaluation = await evaluateAnswer(question, userAnswer, role, experience, type);
+    
+    console.log('📤 Sending answer evaluation');
+    
+    res.json({ 
+      success: true,
+      evaluation 
+    });
+  } catch (error) {
+    console.error('Error in evaluate-answer:', error);
+    res.status(500).json({ 
+      error: "Failed to evaluate answer",
       details: error.message 
     });
   }
